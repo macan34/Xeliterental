@@ -31,14 +31,55 @@ if(isset($_POST['update'])) {
     $jumlah     = $_POST['jumlah'];
     $kondisi    = $_POST['kondisi'];
     $harga_sewa = $_POST['harga_sewa'];
+    $kategori   = $_POST['kategori']; 
 
-    $update = mysqli_query($koneksi, "UPDATE mobil SET nama_mobil='$nama_mobil', jumlah='$jumlah', kondisi='$kondisi', harga_sewa='$harga_sewa' WHERE id_mobil='$id'");
-    
-    if($update){
-        header("location:dashboard.php");
-        exit();
+    $nama_gambar = $_FILES['gambar']['name'];
+    $tmp_gambar  = $_FILES['gambar']['tmp_name'];
+
+    // Jika admin mengunggah gambar baru
+    if(!empty($nama_gambar)) {
+        // Ambil ekstensi berkas gambar
+        $ekstensi_diperbolehkan = array('png', 'jpg', 'jpeg', 'webp');
+        $x = explode('.', $nama_gambar);
+        $ekstensi = strtolower(end($x));
+        
+        // Buat nama unik baru untuk menghindari duplikasi nama file di folder
+        $nama_gambar_baru = time() . '-' . $nama_gambar;
+
+        if(in_array($ekstensi, $ekstensi_diperbolehkan) === true) {
+            // Path folder penyimpanan gambar (sesuaikan dengan struktur folder dashboard user sebelumnya yaitu '../img/')
+            $folder_tujuan = '../img/' . $nama_gambar_baru;
+
+            if(move_uploaded_file($tmp_gambar, $folder_tujuan)) {
+                // Hapus gambar lama dari server jika file fisik tersebut ada
+                if(!empty($data['gambar']) && file_exists('../img/' . $data['gambar'])) {
+                    unlink('../img/' . $data['gambar']);
+                }
+
+                // Query update termasuk gambar baru
+                $sql = "UPDATE mobil SET nama_mobil='$nama_mobil', jumlah='$jumlah', kondisi='$kondisi', harga_sewa='$harga_sewa', kategori='$kategori', gambar='$nama_gambar_baru' WHERE id_mobil='$id'";
+            } else {
+                echo "<script>alert('Gagal mengunggah gambar baru ke server.');</script>";
+                $sql = "";
+            }
+        } else {
+            echo "<script>alert('Ekstensi gambar tidak diperbolehkan! Gunakan png, jpg, jpeg, atau webp.');</script>";
+            $sql = "";
+        }
     } else {
-        echo "<script>alert('Gagal memperbarui data mobil.');</script>";
+        // Jika admin TIDAK mengunggah gambar baru, gunakan nama gambar yang lama
+        $sql = "UPDATE mobil SET nama_mobil='$nama_mobil', jumlah='$jumlah', kondisi='$kondisi', harga_sewa='$harga_sewa', kategori='$kategori' WHERE id_mobil='$id'";
+    }
+
+    // Eksekusi query ke database jika valid
+    if(!empty($sql)) {
+        $update = mysqli_query($koneksi, $sql);
+        if($update){
+            header("location:dashboard.php");
+            exit();
+        } else {
+            echo "<script>alert('Gagal memperbarui data mobil ke database.');</script>";
+        }
     }
 }
 ?>
@@ -58,7 +99,7 @@ if(isset($_POST['update'])) {
         }
 
         body {
-            background-color: #eef2f7; /* Background abu-abu lembut */
+            background-color: #eef2f7; 
             color: #333;
             display: flex;
             flex-direction: column;
@@ -81,7 +122,7 @@ if(isset($_POST['update'])) {
 
         /* Judul Halaman */
         h3 {
-            color: #1e3a8a; /* Warna biru navy Aksa Rental */
+            color: #1e3a8a; 
             font-size: 1.5rem;
             margin-bottom: 1.5rem;
             text-align: center;
@@ -101,8 +142,8 @@ if(isset($_POST['update'])) {
             margin-bottom: 0.5rem;
         }
 
-        /* Desain Input Field */
-        .form-group input {
+        /* Desain Input Field & Select Dropdown */
+        .form-group input, .form-group select {
             width: 100%;
             padding: 0.75rem 1rem;
             font-size: 0.95rem;
@@ -114,11 +155,38 @@ if(isset($_POST['update'])) {
         }
 
         /* Efek fokus input saat diklik */
-        .form-group input:focus {
+        .form-group input:focus, .form-group select:focus {
             outline: none;
             border-color: #1e3a8a;
             background-color: #ffffff;
             box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.1);
+        }
+
+        /* --- STYLE UNTUK PRATINJAU GAMBAR --- */
+        .img-preview-box {
+            margin-top: 10px;
+            width: 100%;
+            height: 160px;
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background-color: #f3f4f6;
+        }
+
+        .img-preview-box img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: cover;
+        }
+
+        .text-helper {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 4px;
+            display: block;
         }
 
         /* Wrapper Aksi Tombol */
@@ -178,15 +246,42 @@ if(isset($_POST['update'])) {
     <div class="form-container">
         <h3>✏️ Edit Data Mobil</h3>
         
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="nama_mobil">Nama Mobil</label>
                 <input type="text" id="nama_mobil" name="nama_mobil" value="<?php echo htmlspecialchars($data['nama_mobil']); ?>" required>
             </div>
 
             <div class="form-group">
+                <label for="kategori">Kategori Armada</label>
+                <select id="kategori" name="kategori" required>
+                    <option value="LCGC" <?php echo ($data['kategori'] == 'LCGC') ? 'selected' : ''; ?>>🍃 LCGC (Hemat)</option>
+                    <option value="Eksklusif" <?php echo ($data['kategori'] == 'Eksklusif') ? 'selected' : ''; ?>>💎 Eksklusif</option>
+                    <option value="Sport 4x4" <?php echo ($data['kategori'] == 'Sport 4x4') ? 'selected' : ''; ?>>🏔️ Sport 4x4</option>
+                </select>
+            </div>
+
+            <div class="form-group">
                 <label for="jumlah">Jumlah Unit</label>
                 <input type="number" id="jumlah" name="jumlah" min="0" value="<?php echo htmlspecialchars($data['jumlah']); ?>" required>
+            </div>
+
+            <div class="form-group">
+                <label for="gambar">Foto Mobil</label>
+                <input type="file" id="gambar" name="gambar" accept="image/*" onchange="previewImage()">
+                <small class="text-helper">*Kosongkan jika tidak ingin mengubah gambar.</small>
+                
+                <div class="img-preview-box">
+                    <?php 
+                    // Menampilkan pratinjau gambar lama yang tersimpan di database saat ini
+                    if(!empty($data['gambar']) && file_exists('../img/' . $data['gambar'])) {
+                        $foto_lama = '../img/' . $data['gambar'];
+                    } else {
+                        $foto_lama = '../assets/default-car.png';
+                    }
+                    ?>
+                    <img id="img-preview" src="<?php echo $foto_lama; ?>" alt="Pratinjau Gambar">
+                </div>
             </div>
 
             <div class="form-group">
@@ -206,5 +301,21 @@ if(isset($_POST['update'])) {
         </form>
     </div>
 
+    <script>
+        function previewImage() {
+            const gambar = document.querySelector('#gambar');
+            const imgPreview = document.querySelector('#img-preview');
+
+            // Membuat URL temporary untuk file gambar yang baru dipilih
+            if(gambar.files && gambar.files[0]) {
+                const oFReader = new FileReader();
+                oFReader.readAsDataURL(gambar.files[0]);
+
+                oFReader.onload = function(oFREvent) {
+                    imgPreview.src = oFREvent.target.result;
+                }
+            }
+        }
+    </script>
 </body>
 </html>

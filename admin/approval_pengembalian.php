@@ -152,6 +152,22 @@ if(isset($_GET['action']) && isset($_GET['id'])) {
         .tab-content.active {
             display: block;
         }
+
+        .btn-print {
+            background-color: #2563eb;
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.375rem;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .btn-print:hover {
+            background-color: #1d4ed8;
+        }
     </style>
 </head>
 <body>
@@ -164,14 +180,13 @@ if(isset($_GET['action']) && isset($_GET['id'])) {
 
     <div class="container">
         <div class="tab-menu">
-            <button class="tab-btn active" onclick="switchTab('pending')">⏳ Menunggu Approval (<?php 
+            <button class="tab-btn active" onclick="switchTab('pending', event)">⏳ Menunggu Approval (<?php 
                 $pending_count = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT COUNT(*) as total FROM penyewaan WHERE status_pengembalian = 'pending'"))['total'];
                 echo $pending_count;
             ?>)</button>
-            <button class="tab-btn" onclick="switchTab('approved')">✓ Sudah Di-Approve</button>
+            <button class="tab-btn" onclick="switchTab('approved', event)">✓ Sudah Di-Approve</button>
         </div>
 
-        <!-- ================= TAB PENDING ================= -->
         <div id="pending" class="tab-content active">
             <?php 
             $query_pending = mysqli_query($koneksi, "
@@ -250,7 +265,6 @@ if(isset($_GET['action']) && isset($_GET['id'])) {
             <?php }} ?>
         </div>
 
-        <!-- ================= TAB APPROVED ================= -->
         <div id="approved" class="tab-content">
             <div class="table-responsive">
                 <table>
@@ -261,8 +275,8 @@ if(isset($_GET['action']) && isset($_GET['id'])) {
                             <th>Mobil</th>
                             <th>Seharusnya Kembali</th>
                             <th>Tanggal Dikembalikan</th>
-                            <th>Kondisi</th>
                             <th>Denda</th>
+                            <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -291,8 +305,12 @@ if(isset($_GET['action']) && isset($_GET['id'])) {
                             <td><?php echo htmlspecialchars($approved['nama_mobil']); ?></td>
                             <td><strong style="color: #059669;">📅 <?php echo $tgl_kembali_ekspektasi; ?></strong></td>
                             <td><?php echo date('d-m-Y', strtotime($approved['tanggal_kembali'])); ?></td>
-                            <td><?php echo htmlspecialchars($approved['kondisi_akhir']); ?></td>
-                            <td><strong>Rp <?php echo number_format($approved['denda'], 0, ',', '.'); ?></strong></td>
+                            <td><strong style="color: <?php echo $approved['denda'] > 0 ? 'var(--danger)' : 'inherit'; ?>;">Rp <?php echo number_format($approved['denda'], 0, ',', '.'); ?></strong></td>
+                            <td>
+                                <a href="cetak_nota.php?id=<?php echo $approved['id_sewa']; ?>" target="_blank" class="btn-print">
+                                    🖨️ Cetak Nota
+                                </a>
+                            </td>
                         </tr>
                         <?php }} ?>
                     </tbody>
@@ -302,16 +320,15 @@ if(isset($_GET['action']) && isset($_GET['id'])) {
     </div>
 
     <script>
-        function switchTab(tabName) {
+        function switchTab(tabName, event) {
             // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             
             // Show selected tab
             document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
+            event.currentTarget.classList.add('active');
         }
     </script>
-
 </body>
 </html>

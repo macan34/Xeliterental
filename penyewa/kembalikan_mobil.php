@@ -174,12 +174,6 @@ if(isset($_POST['kembalikan'])) {
                     </select>
                 </div>
   <div class="form-container">
-        <form method="POST">
-            <div class="form-group">
-                <label for="tanggal_kembali">Tanggal Pengembalian:<span style="color:red;">*</span></label>
-                <input type="date" name="tanggal_kembali" id="tanggal_kembali" value="<?php echo date('Y-m-d'); ?>" required>
-            </div>
-
                 <div class="form-group">
                     <label for="catatan">📝 Catatan/Keterangan Tambahan</label>
                     <textarea id="catatan" name="catatan" placeholder="Tulis catatan jika ada kerusakan atau masalah khusus..."></textarea>
